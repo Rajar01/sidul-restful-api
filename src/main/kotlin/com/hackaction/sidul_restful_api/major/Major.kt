@@ -10,7 +10,7 @@ class Major(
     @Id @GeneratedValue(strategy = GenerationType.UUID) @Column(name = "major_id") val id: UUID? = null,
     @Column(name = "major_name") val majorName: String,
 
-    @ManyToMany(mappedBy = "majors")  val users: Collection<User>? = null
+    @OneToMany(mappedBy = "major")  val users: Collection<User>? = null
 ) {
 
 }

@@ -3,9 +3,6 @@ package com.hackaction.sidul_restful_api.authentication
 import com.hackaction.sidul_restful_api.core.enums.ResponseStatus
 import com.hackaction.sidul_restful_api.core.enums.Role
 import com.hackaction.sidul_restful_api.core.services.JwtService
-import com.hackaction.sidul_restful_api.country.Country
-import com.hackaction.sidul_restful_api.country.CountryRepository
-import com.hackaction.sidul_restful_api.major.Major
 import com.hackaction.sidul_restful_api.major.MajorRepository
 import com.hackaction.sidul_restful_api.user.User
 import com.hackaction.sidul_restful_api.user.UserRepository
@@ -15,7 +12,7 @@ import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
-import kotlin.jvm.optionals.getOrElse
+import java.util.*
 
 @Service
 class AuthenticationService(
@@ -23,7 +20,6 @@ class AuthenticationService(
     val passwordEncoder: PasswordEncoder,
     val jwtService: JwtService,
     val authenticationManager: AuthenticationManager,
-    val countryRepository: CountryRepository,
     val majorRepository: MajorRepository
 ) {
     fun register(registerRequest: RegisterRequest): ResponseEntity<AuthenticationResponse> {
@@ -31,7 +27,7 @@ class AuthenticationService(
         if (userRepository.findByEmail(registerRequest.email).isPresent) {
             return ResponseEntity(
                 AuthenticationResponse(
-                    status = ResponseStatus.FAIL, data = mapOf("token" to "email is already exist")
+                    status = ResponseStatus.FAIL, data = mapOf("token" to "email sudah terdaftar")
                 ), HttpStatus.CONFLICT
             )
         }
@@ -39,19 +35,32 @@ class AuthenticationService(
         if (userRepository.findByPhoneNumber(registerRequest.phoneNumber).isPresent) {
             return ResponseEntity(
                 AuthenticationResponse(
-                    status = ResponseStatus.FAIL, data = mapOf("token" to "phone number is already exist")
+                    status = ResponseStatus.FAIL, data = mapOf("token" to "nomor handphone sudah terdaftar")
                 ), HttpStatus.CONFLICT
             )
         }
 
-        val country = countryRepository.findByCountryName(registerRequest.countryName)
-            .getOrElse { countryRepository.save(Country(countryName = registerRequest.countryName)) }
-
-        val majors = mutableListOf<Major>()
-        registerRequest.majors.forEach {
-            val major = majorRepository.findByMajorName(it).getOrElse { majorRepository.save(Major(majorName = it)) }
-            majors.add(major)
+        if (userRepository.findByFullname(registerRequest.fullname).isPresent) {
+            return ResponseEntity(
+                AuthenticationResponse(
+                    status = ResponseStatus.FAIL, data = mapOf("token" to "nama lengkap sudah terdaftar")
+                ), HttpStatus.CONFLICT
+            )
         }
+
+        if (userRepository.findByUsername(registerRequest.username).isPresent) {
+            return ResponseEntity(
+                AuthenticationResponse(
+                    status = ResponseStatus.FAIL, data = mapOf("token" to "username sudah terdaftar")
+                ), HttpStatus.CONFLICT
+            )
+        }
+
+        val major = majorRepository.findByMajorName(registerRequest.major.replaceFirstChar {
+            if (it.isLowerCase()) it.titlecase(
+                Locale.getDefault()
+            ) else it.toString()
+        }).get();
 
         val user = User(
             fullname = registerRequest.fullname,
@@ -59,11 +68,10 @@ class AuthenticationService(
             email = registerRequest.email,
             phoneNumber = registerRequest.phoneNumber,
             dob = registerRequest.dob,
-            country = country,
+            // photoProfile = registerRequest.photoProfile.bytes,
             role = Role.valueOf(registerRequest.role),
-            majors = majors,
             password = passwordEncoder.encode(registerRequest.password),
-            photoProfile = registerRequest.photoProfile.bytes
+            major = major,
         )
 
         userRepository.save(user)
@@ -72,7 +80,7 @@ class AuthenticationService(
         return ResponseEntity(
             AuthenticationResponse(
                 status = ResponseStatus.SUCCESS, data = mapOf("token" to jwtToken)
-            ), HttpStatus.OK
+            ), HttpStatus.CREATED
         )
     }
 

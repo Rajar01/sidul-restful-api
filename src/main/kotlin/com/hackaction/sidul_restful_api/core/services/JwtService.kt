@@ -12,7 +12,7 @@ import java.util.*
 
 @Service
 class JwtService {
-    // Local constanta within the JwtService Class
+    // Local constant within the JwtService Class
     // TODO move it to application.properties
     val secretKey: String = "ZTYxMjI3YzU3MzRkMjA1ODVhZmVmNDc3ZjM5ZTQ4MmJhODkxZWZiOTIxZDcxZjExZGQ5MGY4YjZlYjBlZTc4Yw"
 
